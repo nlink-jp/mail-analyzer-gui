@@ -28,7 +28,11 @@ mail-analyzer CLI バイナリを子プロセスとして呼び出し、分析�
 │  Plugins:                                        │
 │  - tauri-plugin-shell (子プロセス実行)             │
 │  - tauri-plugin-store (設定永続化)                 │
-│  - Built-in DragDrop event (D&D)                 │
+│  - Built-in DragDrop event (Finder D&D)          │
+│                                                   │
+│  Native:                                         │
+│  - NSView overlay (Apple Mail file promises)     │
+│  - ObjC helper + FSEventStream                   │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -52,11 +56,12 @@ mail-analyzer CLI バイナリを子プロセスとして呼び出し、分析�
 ```
 mail-analyzer-gui/
 ├── docs/
-│   ├── design/
-│   │   ├── mail-analyzer-gui-rfp.md
-│   │   └── architecture.md
-│   └── ja/
-│       └── README.md
+│   ├── en/                     # 英語ドキュメント
+│   │   ├── README.md
+│   │   └── design/
+│   └── ja/                     # 日本語ドキュメント
+│       ├── README.md
+│       └── design/
 ├── src/                        # Svelte frontend
 │   ├── lib/
 │   │   ├── components/
