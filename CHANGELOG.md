@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.0 (2026-04-11)
+
+### Features
+
+- Settings: generic key-value environment variables (replaces hardcoded Vertex AI fields)
+- Settings: template buttons for mail-analyzer (Vertex AI) and mail-analyzer-local (Local LLM)
+- Support mail-analyzer-local as backend — local LLM email analysis via GUI
+- Auto-cleanup of Apple Mail temp files after analysis
+
 ## v0.1.1 (2026-04-11)
 
 ### Fixes
