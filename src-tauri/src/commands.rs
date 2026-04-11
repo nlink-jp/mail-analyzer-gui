@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use tauri::AppHandle;
 
 use crate::analyzer;
@@ -39,4 +41,22 @@ pub fn save_settings(app: AppHandle, settings: Settings) -> Result<(), String> {
 #[tauri::command]
 pub fn export_json(results: Vec<AnalysisResult>) -> Result<String, String> {
     serde_json::to_string_pretty(&results).map_err(|e| format!("Failed to serialize: {}", e))
+}
+
+/// Delete a temporary file (only if it's inside the temp drop directory).
+#[tauri::command]
+pub fn cleanup_temp_file(path: String) -> Result<(), String> {
+    let temp_dir = std::env::temp_dir().join("mail-analyzer-gui-drop");
+    let file_path = Path::new(&path);
+
+    // Safety: only delete files inside our temp directory.
+    if !file_path.starts_with(&temp_dir) {
+        return Ok(()); // silently skip non-temp files
+    }
+
+    if file_path.exists() {
+        std::fs::remove_file(file_path)
+            .map_err(|e| format!("Failed to delete temp file: {}", e))?;
+    }
+    Ok(())
 }

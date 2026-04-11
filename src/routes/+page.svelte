@@ -17,13 +17,13 @@
     const currentWindow = getCurrentWebviewWindow();
     await currentWindow.onDragDropEvent((event) => {
       if (event.payload.type === "drop") {
-        handleFiles(event.payload.paths);
+        handleFiles(event.payload.paths, false);
       }
     });
 
-    // Source 2: Native file-promise handler (Apple Mail drops).
+    // Source 2: Native file-promise handler (Apple Mail drops → temp files).
     await listen<string[]>("files-dropped", (event) => {
-      handleFiles(event.payload);
+      handleFiles(event.payload, true);
     });
   });
 
@@ -36,7 +36,7 @@
     return path.split("/").pop() || path;
   }
 
-  async function handleFiles(paths: string[]) {
+  async function handleFiles(paths: string[], isTempFiles: boolean) {
     const validPaths = paths.filter(isValidExtension);
     if (validPaths.length === 0) return;
 
@@ -64,6 +64,11 @@
         entry.status = "error";
       }
       entries = entries.map((e) => (e.id === entry.id ? { ...entry } : e));
+
+      // Clean up temp files from Apple Mail drops.
+      if (isTempFiles) {
+        invoke("cleanup_temp_file", { path }).catch(() => {});
+      }
     }
   }
 

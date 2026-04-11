@@ -4,27 +4,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
     pub binary_path: String,
-    pub env_vars: EnvVars,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EnvVars {
-    pub project: String,
-    pub location: String,
-    pub model: String,
-    pub lang: String,
+    pub env_vars: std::collections::HashMap<String, String>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
             binary_path: String::new(),
-            env_vars: EnvVars {
-                project: String::new(),
-                location: "us-central1".to_string(),
-                model: "gemini-2.5-flash".to_string(),
-                lang: String::new(),
-            },
+            env_vars: std::collections::HashMap::new(),
         }
     }
 }

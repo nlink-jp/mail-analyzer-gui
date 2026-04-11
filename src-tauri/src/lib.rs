@@ -8,7 +8,7 @@ mod window_state;
 
 use tauri::Manager;
 
-use commands::{analyze_file, export_json, get_settings, save_settings};
+use commands::{analyze_file, cleanup_temp_file, export_json, get_settings, save_settings};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -21,6 +21,7 @@ pub fn run() {
             get_settings,
             save_settings,
             export_json,
+            cleanup_temp_file,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

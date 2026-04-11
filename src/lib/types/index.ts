@@ -1,13 +1,11 @@
 export interface Settings {
   binary_path: string;
-  env_vars: EnvVars;
+  env_vars: Record<string, string>;
 }
 
-export interface EnvVars {
-  project: string;
-  location: string;
-  model: string;
-  lang: string;
+export interface EnvTemplate {
+  name: string;
+  vars: { key: string; placeholder: string }[];
 }
 
 export interface AnalysisResult {
