@@ -1,22 +1,26 @@
 # mail-analyzer-gui
 
-A macOS desktop application for analyzing suspicious emails via [mail-analyzer](https://github.com/nlink-jp/mail-analyzer).
+A macOS desktop application for analyzing suspicious emails via [mail-analyzer](https://github.com/nlink-jp/mail-analyzer) or [mail-analyzer-local](https://github.com/nlink-jp/mail-analyzer-local).
 
 Drag & drop `.eml` or `.msg` files from Finder or Apple Mail to get instant analysis results with rule-based indicators and LLM-powered judgment.
 
 ## Features
 
 - **Drag & Drop** — Drop `.eml`/`.msg` files from Finder or directly from Apple Mail
+- **Dual Backend** — Works with mail-analyzer (Vertex AI) or mail-analyzer-local (local LLM via LM Studio/Ollama)
+- **Template Presets** — One-click settings for Vertex AI or Local LLM configuration
 - **Visual Results** — Judgment (category, confidence, reasons) displayed prominently; indicators expandable
-- **Settings** — Configure mail-analyzer binary path and environment variables (GCP project, model, language)
+- **Generic Settings** — Configure any analyzer binary and arbitrary environment variables
 - **JSON Export** — Copy analysis results to clipboard as JSON
 - **Window State** — Remembers window position and size across sessions
+- **Auto Cleanup** — Temporary files from Apple Mail drops are deleted after analysis
 
 ## Requirements
 
 - macOS 10.15+ (Catalina or later)
-- [mail-analyzer](https://github.com/nlink-jp/mail-analyzer) binary installed
-- GCP credentials for Vertex AI (used by mail-analyzer for LLM analysis)
+- One of the following analyzer backends:
+  - [mail-analyzer](https://github.com/nlink-jp/mail-analyzer) (requires GCP/Vertex AI)
+  - [mail-analyzer-local](https://github.com/nlink-jp/mail-analyzer-local) (requires local LLM server)
 
 ## Installation
 
@@ -31,10 +35,11 @@ Download the `.dmg` from [Releases](https://github.com/nlink-jp/mail-analyzer-gu
 
 1. Launch the app
 2. Click **Settings**
-3. Set **mail-analyzer binary path** (e.g. `/usr/local/bin/mail-analyzer`)
-4. Set **MAIL_ANALYZER_PROJECT** to your GCP project ID
-5. Adjust other environment variables as needed
-6. Click **Save**
+3. Set **Analyzer binary path** (e.g. `/usr/local/bin/mail-analyzer-local`)
+4. Click a **template button** to populate environment variables:
+   - **mail-analyzer (Vertex AI)** — for cloud-based analysis
+   - **mail-analyzer-local (Local LLM)** — for offline analysis
+5. Fill in the values and click **Save**
 
 ## Usage
 
