@@ -99,7 +99,7 @@ void resolve_file_promises(
         [receiver receivePromisedFilesAtDestination:destURL
                                             options:@{}
                                      operationQueue:queue
-                                             reader:^(NSURL *fileURL, NSError *error) {
+                                             reader:^(NSURL *__unused fileURL, NSError *error) {
             // Apple Mail bug: this may not be called. FSEventStream handles it.
             if (error) {
                 NSLog(@"[objc_helper] reader error (non-critical): %@",
@@ -111,10 +111,10 @@ void resolve_file_promises(
 
 /// FSEventStream callback.
 static void fsevents_callback(
-    ConstFSEventStreamRef streamRef, void *clientInfo,
-    size_t numEvents, void *eventPaths,
-    const FSEventStreamEventFlags eventFlags[],
-    const FSEventStreamEventId eventIds[]
+    ConstFSEventStreamRef __unused streamRef, void *clientInfo,
+    size_t numEvents, void *__unused eventPaths,
+    const FSEventStreamEventFlags __unused eventFlags[],
+    const FSEventStreamEventId __unused eventIds[]
 ) {
     WatchContext *ctx = (WatchContext *)clientInfo;
     if (ctx->emitted) return;
@@ -124,7 +124,7 @@ static void fsevents_callback(
 }
 
 /// Safety timeout.
-static void safety_timer_fired(CFRunLoopTimerRef timer, void *info) {
+static void safety_timer_fired(CFRunLoopTimerRef __unused timer, void *info) {
     WatchContext *ctx = (WatchContext *)info;
     if (ctx->emitted) return;
     NSLog(@"[objc_helper] safety timeout — emitting what we have");

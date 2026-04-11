@@ -130,7 +130,7 @@ fn get_or_create_class() -> Result<&'static objc2::runtime::AnyClass, String> {
 #[cfg(target_os = "macos")]
 fn register_promise_types(view: *mut objc2::runtime::AnyObject) -> Result<(), String> {
     use objc2::runtime::*;
-    use objc2::{class, msg_send};
+    use objc2::msg_send;
 
     unsafe {
         let promise_cls = AnyClass::get(c"NSFilePromiseReceiver")
