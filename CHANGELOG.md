@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.1 (2026-04-11)
+
+### Fixes
+
+- Suppress build warnings in ObjC helper and Rust native drop module
+
+### Docs
+
+- Add MIT license
+- Add bilingual documentation (docs/en, docs/ja) for architecture and RFP
+
 ## v0.1.0 (2026-04-11)
 
 Initial release.
