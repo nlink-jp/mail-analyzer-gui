@@ -24,12 +24,7 @@ Drag & drop `.eml` or `.msg` files from Finder or Apple Mail to get instant anal
 
 ## Installation
 
-Download the `.dmg` from [Releases](https://github.com/nlink-jp/mail-analyzer-gui/releases) and drag `mail-analyzer-gui.app` to Applications.
-
-> **Note:** The app is not signed with an Apple Developer certificate. On first launch, you may need to allow it via System Settings > Privacy & Security, or run:
-> ```
-> xattr -d com.apple.quarantine /Applications/mail-analyzer-gui.app
-> ```
+Download the `.dmg` from [Releases](https://github.com/nlink-jp/mail-analyzer-gui/releases) and drag `mail-analyzer-gui.app` to Applications. The `.dmg` is **Developer ID signed and Apple-notarized** (stapled), so it launches without Gatekeeper prompts and works offline.
 
 ## Setup
 

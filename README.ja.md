@@ -26,10 +26,7 @@ FinderやApple Mailから `.eml` / `.msg` ファイルをドラッグ＆ドロ�
 
 [Releases](https://github.com/nlink-jp/mail-analyzer-gui/releases) から `.dmg` をダウンロードし、`mail-analyzer-gui.app` をアプリケーションフォ��ダにドラッグしてください。
 
-> **注意:** Apple Developer証明書で署名されていません。初回起動時はシステム設定 > プライバシーとセキュリティから許可するか、以下を実行してください��
-> ```
-> xattr -d com.apple.quarantine /Applications/mail-analyzer-gui.app
-> ```
+`.dmg` は **Apple Developer ID 署名済 + Apple notarize 済** (ticket staple 済) です。Gatekeeper ダイアログなしで起動でき、オフラインでも動作します。
 
 ## セットアップ
 

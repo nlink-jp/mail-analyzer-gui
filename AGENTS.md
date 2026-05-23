@@ -9,9 +9,10 @@ email files via drag & drop and displays analysis results.
 
 ```bash
 npm install
-npm run tauri build          # Release build → .app + .dmg
-npm run tauri dev             # Dev mode with hot reload
-cargo test --manifest-path src-tauri/Cargo.toml   # Rust tests
+make build       # Release build → .app + .dmg (auto-signed if Developer ID is in keychain)
+make package     # build, then notarize + staple the .dmg for distribution
+make dev         # Dev mode with hot reload
+make test        # Rust tests
 ```
 
 ## Project Structure
@@ -57,5 +58,5 @@ window state) are persisted via tauri-plugin-store.
   callback is never called. FSEventStream is used as a workaround.
 - mail-analyzer may return `null` for array fields (attachments, urls).
   Rust types use `deserialize_with = "deserialize_null_vec"` to handle this.
-- The app is unsigned. First launch requires Gatekeeper bypass.
+- macOS releases (v0.2.1+) are Developer ID signed + Apple-notarized + stapled (`make package` runs `npm run tauri build` with `APPLE_SIGNING_IDENTITY` set so Tauri's bundler signs the .app + .dmg with Hardened Runtime + the entitlements at `scripts/entitlements.plist`, then notarizes the `.dmg` via the `nlink-jp-notary` keychain profile and staples the ticket). Older releases up to v0.2.0 are ad-hoc only and require Gatekeeper bypass.
 - Multi-message Apple Mail D&D is not yet supported (single message only).
