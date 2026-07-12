@@ -24,9 +24,9 @@ FinderやApple Mailから `.eml` / `.msg` ファイルをドラッグ＆ドロ�
 
 ## インストール
 
-[Releases](https://github.com/nlink-jp/mail-analyzer-gui/releases) から `.dmg` をダウンロードし、`mail-analyzer-gui.app` をアプリケーションフォ��ダにドラッグしてください。
+[Releases](https://github.com/nlink-jp/mail-analyzer-gui/releases) から `.zip` をダウンロード・解凍し、`mail-analyzer-gui.app` をアプリケーションフォ��ダにドラッグしてください。
 
-`.dmg` は **Apple Developer ID 署名済 + Apple notarize 済** (ticket staple 済) です。Gatekeeper ダイアログなしで起動でき、オフラインでも動作します。
+`.app` は **Apple Developer ID 署名済 + Apple notarize 済** (ticket staple 済) です。Gatekeeper ダイアログなしで起動でき、オフラインでも動作します。
 
 ## セットアップ
 

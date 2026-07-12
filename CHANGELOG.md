@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.2.2 (2026-07-12)
+
+### Changed
+
+- **Release archive is now a zipped `.app` instead of a `.dmg`**
+  (`mail-analyzer-gui-vX.Y.Z-darwin-arm64.zip` containing the notarized,
+  stapled `mail-analyzer-gui.app`), per `nlink-jp/.github` CONVENTIONS.md
+  §Release Archive Standard. The build now uses `tauri build --bundles app`
+  (no DMG); the `.app` is notarized + stapled via the shared
+  `scripts/notarize-darwin-app.sh`, then archived with
+  `ditto -c -k --keepParent`. mail-analyzer-gui remains **darwin/arm64 only**.
+
+No change to the app's behaviour — a packaging / release-format change.
+
 ## v0.2.1 (2026-05-23)
 
 ### Changed
