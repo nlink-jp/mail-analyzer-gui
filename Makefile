@@ -17,6 +17,18 @@ NOTARIZE_SCRIPT   := scripts/notarize-darwin-app.sh
 # We ship a zipped .app, not a DMG — no Rust-triplet arch juggling needed.
 APP_PATH := src-tauri/target/release/bundle/macos/$(APP).app
 
+# Homebrew tap generation (see scripts/release-brew.mk). After `make package`,
+# `make brew` generates this cask from the built darwin-arm64 zip into the local
+# nlink-jp/homebrew-tap checkout. VERSION comes from package.json (no leading v),
+# so BREW_ZIP is set explicitly to match the `-v$(VERSION)` package artifact.
+BREW_KIND      := cask
+BREW_DESC      := Drag-and-drop desktop app for suspicious email analysis
+BREW_NAME      := $(APP)
+BREW_APP       := $(APP).app
+BREW_BUNDLE_ID := jp.nlink.mail-analyzer-gui
+BREW_ZIP       := dist/$(APP)-v$(VERSION)-darwin-arm64.zip
+include scripts/release-brew.mk
+
 .PHONY: build package dev test clean
 
 ## build: Tauri release build (app bundle only, no DMG). If a Developer
