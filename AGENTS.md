@@ -9,8 +9,8 @@ email files via drag & drop and displays analysis results.
 
 ```bash
 npm install
-make build       # Release build → .app + .dmg (auto-signed if Developer ID is in keychain)
-make package     # build, then notarize + staple the .dmg for distribution
+make build       # Release build → .app only, no DMG (auto-signed if Developer ID is in keychain)
+make package     # build, then notarize + staple the .app and ditto-zip it for distribution
 make verify-release  # gate: .notarized marker + stapler validate (run before upload)
 make dev         # Dev mode with hot reload
 make test        # Rust tests
@@ -59,5 +59,5 @@ window state) are persisted via tauri-plugin-store.
   callback is never called. FSEventStream is used as a workaround.
 - mail-analyzer may return `null` for array fields (attachments, urls).
   Rust types use `deserialize_with = "deserialize_null_vec"` to handle this.
-- macOS releases (v0.2.1+) are Developer ID signed + Apple-notarized + stapled (`make package` runs `npm run tauri build` with `APPLE_SIGNING_IDENTITY` set so Tauri's bundler signs the .app + .dmg with Hardened Runtime + the entitlements at `scripts/entitlements.plist`, then notarizes the `.dmg` via the `nlink-jp-notary` keychain profile and staples the ticket). Older releases up to v0.2.0 are ad-hoc only and require Gatekeeper bypass.
+- macOS releases (v0.2.1+) are Developer ID signed + Apple-notarized + stapled (`make package` runs `npm run tauri build -- --bundles app` with `APPLE_SIGNING_IDENTITY` set so Tauri's bundler signs the .app with Hardened Runtime + the entitlements at `scripts/entitlements.plist`, then notarizes the `.app` via the `nlink-jp-notary` keychain profile, staples the ticket, and ditto-zips it as the release archive). No `.dmg` is produced (v0.2.2+): nlink-jp ships a zipped `.app` per CONVENTIONS.md §Release Archive Standard. Older releases up to v0.2.0 are ad-hoc only and require Gatekeeper bypass.
 - Multi-message Apple Mail D&D is not yet supported (single message only).

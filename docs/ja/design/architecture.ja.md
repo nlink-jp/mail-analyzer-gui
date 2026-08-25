@@ -161,7 +161,6 @@ interface AnalysisResult {
 
 ## Build & Distribution
 
-- `npm run tauri build` で `.app` バンドルを生成
-- Apple Developer未登録のため署名/公証なし
-- 初回起動時は `xattr -d com.apple.quarantine` で Gatekeeper を回避
+- `npm run tauri build -- --bundles app` で `.app` バンドルのみ生成 — `.dmg` は作らない。リリース成果物は ditto で zip 化した `.app`（CONVENTIONS.md §Release Archive Standard）
+- v0.2.1 以降は `make package` で Developer ID 署名 + 公証 + ステープル済み。v0.2.0 以前はアドホック署名のみで、初回起動時に `xattr -d com.apple.quarantine` で Gatekeeper 回避が必要
 - macOS 10.15+ (Catalina) 対応

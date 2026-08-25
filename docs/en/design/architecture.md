@@ -175,7 +175,6 @@ interface AnalysisResult {
 
 ## Build & Distribution
 
-- `npm run tauri build` generates the `.app` bundle and `.dmg`
-- Unsigned (no Apple Developer certificate)
-- First launch requires Gatekeeper bypass: `xattr -d com.apple.quarantine`
+- `npm run tauri build -- --bundles app` generates the `.app` bundle only — no `.dmg`; the release artifact is a ditto-zipped `.app` (CONVENTIONS.md §Release Archive Standard)
+- Releases v0.2.1+ are Developer ID signed + notarized + stapled via `make package`; releases up to v0.2.0 were ad-hoc signed and required a Gatekeeper bypass (`xattr -d com.apple.quarantine`)
 - macOS 10.15+ (Catalina) supported
