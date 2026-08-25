@@ -29,7 +29,7 @@ BREW_BUNDLE_ID := jp.nlink.mail-analyzer-gui
 BREW_ZIP       := dist/$(APP)-v$(VERSION)-darwin-arm64.zip
 include scripts/release-brew.mk
 
-.PHONY: build package dev test clean
+.PHONY: build package verify-release dev test clean
 
 ## build: Tauri release build (app bundle only, no DMG). If a Developer
 ## ID identity is present in the keychain, Tauri signs the .app with
@@ -52,6 +52,17 @@ package: build
 	@cd $(dir $(APP_PATH)) && /usr/bin/ditto -c -k --keepParent \
 		$(APP).app "$(CURDIR)/dist/$(APP)-v$(VERSION)-darwin-arm64.zip"
 	@ls -la "$(CURDIR)/dist/$(APP)-v$(VERSION)-darwin-arm64.zip"
+
+## verify-release: refuse to release an un-notarized build (marker + staple gate)
+verify-release:
+	@test -f "$(APP_PATH).notarized" || { \
+		echo "verify-release: FAIL — $(APP_PATH) has no notarization marker."; \
+		echo "  make package must end with '[notarize-app] ...: Accepted and stapled'. Do not upload."; \
+		exit 1; }
+	@xcrun stapler validate $(APP_PATH)
+	@test -f "dist/$(APP)-v$(VERSION)-darwin-arm64.zip" || { \
+		echo "verify-release: FAIL — release zip missing: dist/$(APP)-v$(VERSION)-darwin-arm64.zip"; exit 1; }
+	@echo "verify-release: OK (v$(VERSION) — marker present, ticket stapled)"
 
 dev:
 	npm run tauri dev

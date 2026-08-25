@@ -11,6 +11,7 @@ email files via drag & drop and displays analysis results.
 npm install
 make build       # Release build → .app + .dmg (auto-signed if Developer ID is in keychain)
 make package     # build, then notarize + staple the .dmg for distribution
+make verify-release  # gate: .notarized marker + stapler validate (run before upload)
 make dev         # Dev mode with hot reload
 make test        # Rust tests
 ```
