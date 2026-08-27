@@ -13,6 +13,7 @@ struct ContentView: View {
         }
         .padding(16)
         .frame(minWidth: 480, minHeight: 360)
+        .background(DropHostView(model: model))
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 if !model.entries.isEmpty {
