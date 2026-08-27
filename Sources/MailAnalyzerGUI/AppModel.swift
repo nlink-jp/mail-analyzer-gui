@@ -28,8 +28,26 @@ final class AppModel: ObservableObject {
     @Published var expanded: Set<UUID> = []
     @Published var notice: String?
     @Published var exportMessage: String?
-    @Published var showSettings = false
+    @Published var showSettings = false {
+        didSet { if showSettings && !oldValue { settingsGeneration += 1 } }
+    }
     @Published var isDropTargeted = false
+
+    /// Bumped each time the settings sheet opens, so a pending auto-close
+    /// scheduled in an earlier sheet session can never dismiss a reopened
+    /// sheet (save → cancel → reopen within the delay window).
+    private var settingsGeneration = 0
+
+    /// Legacy UX: "Settings saved." stays visible ~600ms, then the sheet
+    /// closes itself.
+    func closeSettingsAfterSave(delay: TimeInterval = 0.6) {
+        let generation = settingsGeneration
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            guard let self, self.settingsGeneration == generation else { return }
+            self.showSettings = false
+        }
+    }
 
     typealias Runner = (AnalyzerSettings, URL) async -> Result<AnalysisResult, AnalyzerFailure>
 

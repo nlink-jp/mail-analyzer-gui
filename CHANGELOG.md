@@ -7,6 +7,8 @@
 - Result tags wrap across lines again instead of overflowing the window —
   the Swift rewrite dropped the legacy CSS `flex-wrap` behavior (found in
   post-release code review).
+- A stale settings auto-close (save → cancel → reopen within the 600 ms
+  "Settings saved." window) no longer dismisses the reopened sheet.
 
 ## v0.3.0 (2026-08-28)
 

@@ -149,6 +149,29 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(model.exportMessage, L("JSON copied to clipboard."))
     }
 
+    func testSettingsAutoCloseAfterSave() async throws {
+        let model = AppModel(
+            runner: { _, _ in .failure(AnalyzerFailure("unused")) },
+            dropTempBase: tempBase, deleteFile: { _ in })
+        model.showSettings = true
+        model.closeSettingsAfterSave(delay: 0.05)
+        try await waitUntil { model.showSettings == false }
+    }
+
+    // Save → Cancel → reopen inside the auto-close window: the stale close
+    // must not dismiss the reopened sheet.
+    func testStaleSettingsAutoCloseDoesNotDismissReopenedSheet() async throws {
+        let model = AppModel(
+            runner: { _, _ in .failure(AnalyzerFailure("unused")) },
+            dropTempBase: tempBase, deleteFile: { _ in })
+        model.showSettings = true
+        model.closeSettingsAfterSave(delay: 0.1)
+        model.showSettings = false   // user cancels
+        model.showSettings = true    // user reopens before the delay fires
+        try await Task.sleep(nanoseconds: 250_000_000)
+        XCTAssertTrue(model.showSettings, "a stale auto-close closed the reopened sheet")
+    }
+
     func testToggleExpanded() {
         let model = AppModel(
             runner: { _, _ in .failure(AnalyzerFailure("unused")) },

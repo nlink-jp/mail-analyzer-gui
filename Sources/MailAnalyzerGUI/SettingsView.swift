@@ -105,9 +105,6 @@ struct SettingsView: View {
             envVars: EnvRows.sanitizeForSave(envRows))
         settings.save(to: model.defaults)
         message = L("Settings saved.")
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 600_000_000)
-            model.showSettings = false
-        }
+        model.closeSettingsAfterSave()
     }
 }
