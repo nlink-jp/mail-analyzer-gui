@@ -1,0 +1,17 @@
+{
+  "settings": {
+    "binary_path": "/usr/local/bin/mail-analyzer-local",
+    "env_vars": {
+      "MAIL_ANALYZER_LOCAL_ENDPOINT": "http://localhost:1234/v1",
+      "MAIL_ANALYZER_LOCAL_MODEL": "google/gemma-4-26b-a4b",
+      "MAIL_ANALYZER_LOCAL_API_KEY": "",
+      "MAIL_ANALYZER_LOCAL_LANG": "ja"
+    }
+  },
+  "window_state": {
+    "x": 2016,
+    "y": 216,
+    "width": 1553,
+    "height": 1882
+  }
+}
