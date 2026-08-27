@@ -58,6 +58,11 @@ public struct PromiseDropSession {
     }
 
     private let expected: Int
+    /// True when `expected` is an exact file count (legacy promise names, or
+    /// receivers with populated fileNames) rather than a receiver-count
+    /// guess. An exact count may complete on stability alone; a guess must
+    /// wait out the quiet window.
+    private let expectedIsExact: Bool
     private let startedAt: TimeInterval
     private let config: Config
 
@@ -72,8 +77,14 @@ public struct PromiseDropSession {
     private var lastActivity: TimeInterval
     private var finished = false
 
-    public init(expectedCount: Int, startedAt: TimeInterval, config: Config = Config()) {
+    public init(
+        expectedCount: Int,
+        expectedIsExact: Bool = false,
+        startedAt: TimeInterval,
+        config: Config = Config()
+    ) {
         self.expected = max(expectedCount, 1)
+        self.expectedIsExact = expectedIsExact && expectedCount >= 1
         self.startedAt = startedAt
         self.config = config
         self.lastActivity = startedAt
@@ -132,18 +143,25 @@ public struct PromiseDropSession {
             now - $0.lastChanged >= config.stableWindow
         }
 
-        // 2. All files on disk are fully written and the drop has gone
-        //    quiet. The quiet window is required even when the count hint is
-        //    already met: the hint under-counts for Mail multi-message drags
-        //    (one receiver, empty fileNames → hint 1), and completing on
-        //    "count reached + stable" would race files the source has not
-        //    started writing yet. Deliver whatever arrived; warn on shortfall
-        //    (the hint over-counts for other drags).
+        // 2. Exact expected count met and every file fully written →
+        //    complete immediately (no quiet wait). Only allowed for exact
+        //    counts — legacy promise names or populated fileNames — where
+        //    no further file can be in flight.
+        if expectedIsExact && allStable && files.count >= expected {
+            return .files(sortedPaths(), warning: nil)
+        }
+
+        // 3. All files on disk are fully written and the drop has gone
+        //    quiet. Required when the count is only a hint: it under-counts
+        //    for Mail drags read via NSFilePromiseReceiver (one receiver,
+        //    empty fileNames → hint 1), and completing on "count reached +
+        //    stable" would race files the source has not started writing
+        //    yet. Deliver whatever arrived; warn on shortfall.
         if allStable && now - lastActivity >= config.quietWindow {
             return .files(sortedPaths(), warning: shortfallWarning())
         }
 
-        // 3. Hard deadline — never silent.
+        // 4. Hard deadline — never silent.
         if now - startedAt >= config.deadline {
             if files.isEmpty {
                 var msg = "No files were received from the drag source within \(Int(config.deadline))s."

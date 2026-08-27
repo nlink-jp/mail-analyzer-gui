@@ -121,6 +121,36 @@ final class PromiseDropSessionTests: XCTestCase {
         }
     }
 
+    // Exact counts (legacy promise names) complete on stability alone — no
+    // quiet-window wait. This is the Mail single-message latency fix.
+    func testExactCountCompletesOnStabilityWithoutQuietWait() {
+        var s = PromiseDropSession(expectedCount: 2, expectedIsExact: true, startedAt: 0)
+        XCTAssertEqual(s.handle(.snapshot(["r0/a.eml": 100, "r0/b.eml": 200], at: 0.25)), .continuePolling)
+        // 0.5s stability reached at 0.75 — quiet window (2.0s) NOT required.
+        let step = s.handle(.snapshot(["r0/a.eml": 100, "r0/b.eml": 200], at: 0.75))
+        XCTAssertEqual(step, .finished(.files(["r0/a.eml", "r0/b.eml"], warning: nil)))
+    }
+
+    func testExactCountStillWaitsForAllFiles() {
+        var s = PromiseDropSession(expectedCount: 3, expectedIsExact: true, startedAt: 0)
+        XCTAssertEqual(s.handle(.snapshot(["r0/a.eml": 100], at: 0.25)), .continuePolling)
+        // Stable but only 1 of 3 — must not complete early; quiet window
+        // eventually delivers the shortfall with a warning.
+        XCTAssertEqual(s.handle(.snapshot(["r0/a.eml": 100], at: 0.8)), .continuePolling)
+        let step = s.handle(.snapshot(["r0/a.eml": 100], at: 2.4))
+        XCTAssertEqual(step, .finished(.files(["r0/a.eml"], warning: "Received 1 of 3 promised files.")))
+    }
+
+    func testExactCountWaitsForStability() {
+        var s = PromiseDropSession(expectedCount: 1, expectedIsExact: true, startedAt: 0)
+        XCTAssertEqual(s.handle(.snapshot(["r0/a.eml": 100], at: 0.25)), .continuePolling)
+        // Still growing at 0.5 → not stable → no completion.
+        XCTAssertEqual(s.handle(.snapshot(["r0/a.eml": 900], at: 0.5)), .continuePolling)
+        XCTAssertEqual(s.handle(.snapshot(["r0/a.eml": 900], at: 0.75)), .continuePolling)
+        let step = s.handle(.snapshot(["r0/a.eml": 900], at: 1.0))
+        XCTAssertEqual(step, .finished(.files(["r0/a.eml"], warning: nil)))
+    }
+
     func testZeroExpectedIsTreatedAsOne() {
         var s = PromiseDropSession(expectedCount: 0, startedAt: 0)
         XCTAssertEqual(s.handle(.snapshot([:], at: 1.0)), .continuePolling)
