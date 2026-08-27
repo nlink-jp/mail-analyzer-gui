@@ -1,0 +1,56 @@
+/* ja translations. Keys are the English source text (see en.lproj). */
+
+/* Toolbar */
+"Clear" = "クリア";
+"Export JSON" = "JSON をエクスポート";
+"Settings" = "設定";
+
+/* Drop zone */
+".eml / .msg files here" = ".eml / .msg ファイルをここへ";
+
+/* Result list */
+"No results yet" = "まだ結果はありません";
+"Analyzing..." = "解析中...";
+"Error" = "エラー";
+
+/* Result detail */
+"SUSPICIOUS" = "SUSPICIOUS";
+"(no subject)" = "（件名なし）";
+"Show Indicators" = "指標を表示";
+"Hide Indicators" = "指標を隠す";
+"Authentication" = "認証";
+"Sender" = "送信者";
+"URLs (%d)" = "URL (%d)";
+"Attachments (%d)" = "添付ファイル (%d)";
+"Routing" = "経路";
+"none" = "none";
+"From/Return-Path mismatch" = "From と Return-Path の不一致";
+"Display name spoofing" = "表示名のなりすまし";
+"Reply-To divergence" = "Reply-To の相違";
+"No issues detected" = "問題は検出されませんでした";
+"Hops: %d" = "ホップ数: %d";
+"X-Mailer: %@" = "X-Mailer: %@";
+"Summary" = "概要";
+"Reasons" = "根拠";
+"From" = "差出人";
+"Date" = "日時";
+"%llu bytes" = "%llu バイト";
+
+/* Settings */
+"Analyzer binary path" = "アナライザーのバイナリパス";
+"Environment Variables" = "環境変数";
+"KEY" = "KEY";
+"+ Add variable" = "+ 変数を追加";
+"Cancel" = "キャンセル";
+"Save" = "保存";
+"Saving..." = "保存中...";
+"Settings saved." = "設定を保存しました。";
+
+/* Export */
+"JSON copied to clipboard." = "JSON をクリップボードにコピーしました。";
+"Export failed: %@" = "エクスポートに失敗しました: %@";
+"OK" = "OK";
+
+/* Notices (new in v0.3.0 — the legacy app was silent here) */
+"Ignored %d file(s) — only .eml / .msg are analyzed." = "%d 件のファイルを無視しました — 解析対象は .eml / .msg のみです。";
+"Drop failed: %@" = "ドロップに失敗しました: %@";

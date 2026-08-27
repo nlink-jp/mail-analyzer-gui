@@ -15,7 +15,8 @@ let package = Package(
         .executableTarget(
             name: "MailAnalyzerGUI",
             dependencies: ["MailAnalyzerGUICore"],
-            path: "Sources/MailAnalyzerGUI"
+            path: "Sources/MailAnalyzerGUI",
+            resources: [.process("Resources")]
         ),
         .testTarget(
             name: "MailAnalyzerGUICoreTests",

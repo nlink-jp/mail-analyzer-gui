@@ -1,0 +1,56 @@
+/* en is an identity table: keys are the English source text. */
+
+/* Toolbar */
+"Clear" = "Clear";
+"Export JSON" = "Export JSON";
+"Settings" = "Settings";
+
+/* Drop zone */
+".eml / .msg files here" = ".eml / .msg files here";
+
+/* Result list */
+"No results yet" = "No results yet";
+"Analyzing..." = "Analyzing...";
+"Error" = "Error";
+
+/* Result detail */
+"SUSPICIOUS" = "SUSPICIOUS";
+"(no subject)" = "(no subject)";
+"Show Indicators" = "Show Indicators";
+"Hide Indicators" = "Hide Indicators";
+"Authentication" = "Authentication";
+"Sender" = "Sender";
+"URLs (%d)" = "URLs (%d)";
+"Attachments (%d)" = "Attachments (%d)";
+"Routing" = "Routing";
+"none" = "none";
+"From/Return-Path mismatch" = "From/Return-Path mismatch";
+"Display name spoofing" = "Display name spoofing";
+"Reply-To divergence" = "Reply-To divergence";
+"No issues detected" = "No issues detected";
+"Hops: %d" = "Hops: %d";
+"X-Mailer: %@" = "X-Mailer: %@";
+"Summary" = "Summary";
+"Reasons" = "Reasons";
+"From" = "From";
+"Date" = "Date";
+"%llu bytes" = "%llu bytes";
+
+/* Settings */
+"Analyzer binary path" = "Analyzer binary path";
+"Environment Variables" = "Environment Variables";
+"KEY" = "KEY";
+"+ Add variable" = "+ Add variable";
+"Cancel" = "Cancel";
+"Save" = "Save";
+"Saving..." = "Saving...";
+"Settings saved." = "Settings saved.";
+
+/* Export */
+"JSON copied to clipboard." = "JSON copied to clipboard.";
+"Export failed: %@" = "Export failed: %@";
+"OK" = "OK";
+
+/* Notices (new in v0.3.0 — the legacy app was silent here) */
+"Ignored %d file(s) — only .eml / .msg are analyzed." = "Ignored %d file(s) — only .eml / .msg are analyzed.";
+"Drop failed: %@" = "Drop failed: %@";
