@@ -57,17 +57,25 @@ subprocess and displays analysis results in a GUI. Two SwiftPM targets:
 
 ### Apple Mail drop (file promises)
 
-1. `DropView` detects promise types (promise-first precedence) and hands
-   the `NSFilePromiseReceiver`s to a new `PromiseDropController`.
-2. The controller creates `$TMPDIR/mail-analyzer-gui-drop/<UUID>/r<i>/`,
-   calls `receivePromisedFiles` (reader on a non-main queue — it often
-   never fires for Mail; platform bug), and polls the directory every
-   250 ms into the pure `PromiseDropSession` reducer.
-3. The reducer completes on: reader delivering the expected count, or all
-   files size-stable + a 2 s quiet window (receiver count is only a hint —
-   this is what makes multi-message drags work), or a 15 s deadline that
-   **always** yields an outcome (partial files with a warning, or a
-   failure notice; never silence).
+Measured pasteboard reality (2026-08): a single-message Mail drag offers
+both the modern promise (`NSFilePromiseReceiver`, empty `fileNames`) and
+the pre-10.12 protocol (`com.apple.pasteboard.promised-file-url`); a
+multi-message drag offers **only** the pre-10.12 protocol.
+
+1. `DropView` routes promises legacy-first: the old protocol is resolved
+   inside `performDragOperation` via `namesOfPromisedFilesDropped`
+   (deprecated, deliberately kept — it is the only API Mail supports for
+   multi-message drags and it returns the **exact** promised-name count).
+   Modern receivers are the fallback for sources without the old protocol.
+2. Either way the controller owns
+   `$TMPDIR/mail-analyzer-gui-drop/<UUID>/r<i>/` and polls it every 250 ms
+   into the pure `PromiseDropSession` reducer (the modern path also arms
+   the reader callbacks — they often never fire for Mail; platform bug).
+3. The reducer completes on: reader delivering the expected count; an
+   **exact** count fully on disk and size-stable (~0.75 s — the fast
+   path); an inexact hint size-stable + a 2 s quiet window; or a 15 s
+   deadline that **always** yields an outcome (partial files with a
+   warning, or a failure notice; never silence).
 4. Delivered files enter the same `handleDropped` path with
    `promiseTemp: true`; after analysis each temp file is deleted (guarded
    to the temp base) and empty drop directories are pruned. Day-old

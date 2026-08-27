@@ -57,15 +57,24 @@ SwiftPM の 2 ターゲット構成:
 
 ### Apple Mail ドロップ（file promise）
 
-1. `DropView` が promise 型を検出（promise 優先）し、
-   `NSFilePromiseReceiver` 群を新しい `PromiseDropController` に渡す。
-2. controller は `$TMPDIR/mail-analyzer-gui-drop/<UUID>/r<i>/` を作成し、
-   `receivePromisedFiles` を発行（reader は非 main キュー。Mail では発火
-   しないことが多い — プラットフォームバグ）し、ディレクトリを 250ms
-   間隔でポーリングして純粋な `PromiseDropSession` reducer に流す。
-3. reducer の完了条件: reader が期待数を届けた／全ファイルのサイズが静止し
-   2 秒の quiet window が経過（レシーバ数はヒント扱い — これが複数
-   メッセージドラッグを成立させる）／15 秒の deadline で**必ず**結果を出す
+ペーストボードの実測（2026-08）: Mail の 1 通ドラッグはモダン promise
+（`NSFilePromiseReceiver`、`fileNames` は空）と pre-10.12 プロトコル
+（`com.apple.pasteboard.promised-file-url`）の**両方**を載せるが、複数通
+ドラッグは **pre-10.12 プロトコルのみ**を載せる。
+
+1. `DropView` は promise を legacy 優先でルーティングする: 旧プロトコルは
+   `performDragOperation` 内で `namesOfPromisedFilesDropped` により解決
+   （非推奨 API だが意図的に使用 — Mail の複数通ドラッグを受けられる唯一の
+   API であり、**正確な**約束ファイル名数を返す）。旧プロトコルを持たない
+   ソースにはモダン receiver で fallback する。
+2. どちらの経路でも controller が
+   `$TMPDIR/mail-analyzer-gui-drop/<UUID>/r<i>/` を所有し、250ms 間隔で
+   ポーリングして純粋な `PromiseDropSession` reducer に流す（モダン経路は
+   reader コールバックも併用 — Mail では発火しないことが多い。
+   プラットフォームバグ）。
+3. reducer の完了条件: reader が期待数を届けた／**正確な**期待数が全て
+   ディスク上でサイズ静止（~0.75 秒 — 高速経路）／不正確なヒントは
+   サイズ静止 + 2 秒の quiet window／15 秒の deadline で**必ず**結果を出す
    （不足分は警告付き部分配達、0 件は失敗通知。沈黙はない）。
 4. 届いたファイルは `promiseTemp: true` で同じ `handleDropped` 経路へ。
    解析後に一時ファイルを削除（temp base 配下ガード付き）し、空になった

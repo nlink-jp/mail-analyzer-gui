@@ -88,13 +88,24 @@ mail-analyzer-gui/
 
 ## Gotchas
 
-- **Apple Mail's promise reader block often never fires** (platform bug).
-  `PromiseDropController` therefore polls the per-drop temp directory and
-  decides completion by size quiescence + a quiet window
-  (`PromiseDropSession`); the receiver count is only a hint — Mail reports
-  one receiver with empty `fileNames` for multi-message drags. Every drop
-  ends in a visible outcome; zero files at the 15 s deadline is a failure
-  notice, never silence (the ≤ v0.2.2 implementation hung silently).
+- **Mail multi-message drags carry ONLY the pre-10.12 promise protocol**
+  (`com.apple.pasteboard.promised-file-url`) — the modern
+  NSFilePromiseReceiver types vanish from the pasteboard entirely
+  (measured 2026-08 with a drag-pasteboard sniffer; single-message drags
+  offer both). The legacy path resolves via
+  `namesOfPromisedFilesDropped(atDestination:)` — **deprecated since
+  10.13 but deliberately used**: it is the only API that keeps Mail's
+  multi-message promise, and it returns the exact promised-name count.
+  The build carries one deprecation warning for it; do not "fix" it by
+  removing the call.
+- **Apple Mail's modern promise reader block often never fires** (platform
+  bug). `PromiseDropController` therefore polls the per-drop temp
+  directory and decides completion from file sizes
+  (`PromiseDropSession`): an exact count (legacy names, populated
+  fileNames) completes on size stability alone (~0.75 s); an inexact
+  receiver-count hint waits out a 2 s quiet window. Every drop ends in a
+  visible outcome; zero files at the 15 s deadline is a failure notice,
+  never silence (the ≤ v0.2.2 implementation hung silently).
 - **`Bundle.module` traps inside the hand-assembled .app** — resources are
   found via `ResourceBundleLocator` (`MailAnalyzerGUI_MailAnalyzerGUI.bundle`
   lives in `Contents/Resources`). Never reintroduce `Bundle.module`.
