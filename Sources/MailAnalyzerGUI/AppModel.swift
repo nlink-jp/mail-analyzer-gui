@@ -34,7 +34,7 @@ final class AppModel: ObservableObject {
     typealias Runner = (AnalyzerSettings, URL) async -> Result<AnalysisResult, AnalyzerFailure>
 
     private let runner: Runner
-    private let defaults: UserDefaults
+    let defaults: UserDefaults
     private let deleteFile: (URL) -> Void
     /// Base directory for promise-drop temp files; the deletion guard —
     /// never remove anything outside it — is legacy behavior kept verbatim.
