@@ -48,8 +48,8 @@ final class PromiseDropControllerTests: XCTestCase {
     func testFilesAppearingInDropDirectoryAreDelivered() async throws {
         var outcome: PromiseDropController.Outcome?
         let controller = PromiseDropController(
-            receivers: [], tempBase: tempBase, config: fastConfig) { outcome = $0 }
-        controller.start()
+            tempBase: tempBase, config: fastConfig) { outcome = $0 }
+        controller.start(receivers: [])
 
         let dir = controller.dropDirectory.appendingPathComponent("r0", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -66,8 +66,8 @@ final class PromiseDropControllerTests: XCTestCase {
     func testMultipleFilesWithUnderCountedHintAllArrive() async throws {
         var outcome: PromiseDropController.Outcome?
         let controller = PromiseDropController(
-            receivers: [], tempBase: tempBase, config: fastConfig) { outcome = $0 }
-        controller.start()
+            tempBase: tempBase, config: fastConfig) { outcome = $0 }
+        controller.start(receivers: [])
 
         let dir = controller.dropDirectory.appendingPathComponent("r0", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -87,13 +87,57 @@ final class PromiseDropControllerTests: XCTestCase {
     func testNoFilesFailsAtDeadlineNeverSilent() async throws {
         var outcome: PromiseDropController.Outcome?
         let controller = PromiseDropController(
-            receivers: [], tempBase: tempBase, config: fastConfig) { outcome = $0 }
-        controller.start()
+            tempBase: tempBase, config: fastConfig) { outcome = $0 }
+        controller.start(receivers: [])
 
         let result = try await waitForOutcome(controller, received: { outcome }, timeout: 8)
         guard case .failure(let message) = result else {
             return XCTFail("expected failure outcome, got \(result)")
         }
         XCTAssertTrue(message.contains("No files were received"))
+    }
+
+    // The legacy-promise path (Mail multi-message): exact name count →
+    // completion on stability alone, well inside the quiet window.
+    func testLegacyPathDeliversExactCountFast() async throws {
+        var outcome: PromiseDropController.Outcome?
+        let controller = PromiseDropController(
+            tempBase: tempBase, config: fastConfig) { outcome = $0 }
+        let destination = try controller.prepareLegacyDestination()
+        XCTAssertTrue(FileManager.default.fileExists(atPath: destination.path))
+
+        // The source (Mail) writes after namesOfPromisedFilesDropped.
+        try Data("a".utf8).write(to: destination.appendingPathComponent("m1.eml"))
+        try Data("b".utf8).write(to: destination.appendingPathComponent("m2.eml"))
+        controller.startLegacy(expectedCount: 2)
+
+        let start = ContinuousClock.now
+        let result = try await waitForOutcome(controller, received: { outcome })
+        let elapsed = start.duration(to: .now)
+        guard case .files(let urls, let warning) = result else {
+            return XCTFail("expected files outcome, got \(result)")
+        }
+        XCTAssertEqual(urls.map(\.lastPathComponent).sorted(), ["m1.eml", "m2.eml"])
+        XCTAssertNil(warning)
+        // Exact count completes on stability (0.2s) without the quiet
+        // window: ~0.5s with poll granularity; the quiet path would need
+        // ~1.0s. 0.75s discriminates with margin against jitter.
+        XCTAssertLessThan(elapsed, .seconds(0.75))
+    }
+
+    func testLegacyPathShortfallWarnsViaQuietWindow() async throws {
+        var outcome: PromiseDropController.Outcome?
+        let controller = PromiseDropController(
+            tempBase: tempBase, config: fastConfig) { outcome = $0 }
+        let destination = try controller.prepareLegacyDestination()
+        try Data("a".utf8).write(to: destination.appendingPathComponent("m1.eml"))
+        controller.startLegacy(expectedCount: 3)
+
+        let result = try await waitForOutcome(controller, received: { outcome })
+        guard case .files(let urls, let warning) = result else {
+            return XCTFail("expected files outcome, got \(result)")
+        }
+        XCTAssertEqual(urls.map(\.lastPathComponent), ["m1.eml"])
+        XCTAssertEqual(warning, "Received 1 of 3 promised files.")
     }
 }

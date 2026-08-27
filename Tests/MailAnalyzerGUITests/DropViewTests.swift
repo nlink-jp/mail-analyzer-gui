@@ -60,6 +60,41 @@ final class DropViewTests: XCTestCase {
         XCTAssertEqual(highlights.last, false, "highlight must clear on drop")
     }
 
+    // A Mail multi-message drag carries ONLY the old-protocol promise type
+    // (measured 2026-08) — it must be accepted and routed to the legacy
+    // handler.
+    func testLegacyPromiseOnlyDragIsAcceptedAndRouted() {
+        let view = DropView()
+        XCTAssertTrue(view.registeredDraggedTypes.contains(DropView.legacyPromiseType))
+
+        let pb = NSPasteboard(name: NSPasteboard.Name("mail-analyzer-gui-tests-legacy-promise"))
+        pb.declareTypes([DropView.legacyPromiseType], owner: nil)
+        pb.setString("promise", forType: DropView.legacyPromiseType)
+        let info = FakeDraggingInfo(pasteboard: pb)
+
+        var legacyCalls = 0
+        view.onLegacyPromise = { _ in legacyCalls += 1; return true }
+        var urlCalls = 0
+        view.onFileURLs = { _ in urlCalls += 1 }
+
+        XCTAssertEqual(view.draggingEntered(info), .copy)
+        XCTAssertTrue(view.performDragOperation(info))
+        XCTAssertEqual(legacyCalls, 1)
+        XCTAssertEqual(urlCalls, 0)
+    }
+
+    func testLegacyPromiseRefusalFallsThrough() {
+        let view = DropView()
+        let pb = NSPasteboard(name: NSPasteboard.Name("mail-analyzer-gui-tests-legacy-refused"))
+        pb.declareTypes([DropView.legacyPromiseType], owner: nil)
+        pb.setString("promise", forType: DropView.legacyPromiseType)
+        let info = FakeDraggingInfo(pasteboard: pb)
+
+        view.onLegacyPromise = { _ in false }
+        // Nothing else on the pasteboard → the drop fails cleanly.
+        XCTAssertFalse(view.performDragOperation(info))
+    }
+
     func testNonFileDragIsRejected() {
         let view = DropView()
         let pb = NSPasteboard(name: NSPasteboard.Name("mail-analyzer-gui-tests-drag-text"))

@@ -105,17 +105,47 @@ final class AppModel: ObservableObject {
         showNotice(L("Drop failed: %@", message))
     }
 
-    /// Entry point for file-promise drags (Apple Mail). Every drop gets its
+    /// Entry point for modern file-promise drags (NSFilePromiseReceiver —
+    /// Mail offers this for single-message drags only). Every drop gets its
     /// own controller and temp subdirectory; the outcome — success, partial,
     /// or failure — always reaches the UI (the legacy drop-error event was
     /// emitted into the void).
     func handlePromiseDrop(receivers: [NSFilePromiseReceiver]) {
         guard !receivers.isEmpty else { return }
+        let controller = makeRetainedPromiseController()
+        controller.start(receivers: receivers)
+    }
+
+    /// Entry point for old-protocol promise drags
+    /// (`com.apple.pasteboard.promised-file-url` — the only thing Mail
+    /// offers for multi-message drags; measured 2026-08). Must run inside
+    /// `performDragOperation`: `namesOfPromisedFilesDropped` both asks the
+    /// source to write into our directory and returns the exact promised
+    /// names. Returns false when the source promises nothing.
+    @discardableResult
+    func handleLegacyPromiseDrop(_ sender: NSDraggingInfo) -> Bool {
+        let controller = makeRetainedPromiseController()
+        do {
+            let destination = try controller.prepareLegacyDestination()
+            // Deprecated since 10.13 but still the only API that keeps
+            // Mail's multi-message promise; see AGENTS.md gotchas.
+            let names = sender.namesOfPromisedFilesDropped(atDestination: destination) ?? []
+            guard !names.isEmpty else {
+                promiseControllers[ObjectIdentifier(controller)] = nil
+                return false
+            }
+            controller.startLegacy(expectedCount: names.count)
+            return true
+        } catch {
+            promiseControllers[ObjectIdentifier(controller)] = nil
+            reportDropFailure(error.localizedDescription)
+            return false
+        }
+    }
+
+    private func makeRetainedPromiseController() -> PromiseDropController {
         var controllerID: ObjectIdentifier?
-        let controller = PromiseDropController(
-            receivers: receivers,
-            tempBase: dropTempBase
-        ) { [weak self] outcome in
+        let controller = PromiseDropController(tempBase: dropTempBase) { [weak self] outcome in
             guard let self else { return }
             if let id = controllerID {
                 self.promiseControllers[id] = nil
@@ -133,7 +163,7 @@ final class AppModel: ObservableObject {
         let id = ObjectIdentifier(controller)
         controllerID = id
         promiseControllers[id] = controller
-        controller.start()
+        return controller
     }
 
     /// Crash hygiene: drop directories older than a day are leftovers from a

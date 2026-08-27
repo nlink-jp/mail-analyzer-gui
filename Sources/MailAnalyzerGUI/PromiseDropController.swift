@@ -2,11 +2,20 @@ import AppKit
 import MailAnalyzerGUICore
 
 /// The impure half of a file-promise drop (Apple Mail et al.): owns the
-/// per-drop temp directories, kicks off the promise receivers, polls the
+/// per-drop temp directories, kicks off the promise machinery, polls the
 /// directory into the pure PromiseDropSession reducer, and delivers exactly
 /// one outcome. Replaces the legacy Rust/ObjC FSEventStream bridge — a
 /// 250 ms poll doubles as the reducer's clock, needs no run-loop thread,
 /// and tears itself down deterministically.
+///
+/// Two start modes (measured against real Mail drags, 2026-08):
+/// - `start(receivers:)` — modern NSFilePromiseReceiver. Mail offers this
+///   only for SINGLE-message drags, with empty fileNames (count is a hint).
+/// - `prepareLegacyDestination()` + `startLegacy(expectedCount:)` — the
+///   pre-10.12 promise protocol (`com.apple.pasteboard.promised-file-url`),
+///   the ONLY thing Mail offers for multi-message drags. The caller gets
+///   the exact promised-name count from `namesOfPromisedFilesDropped`, so
+///   the reducer completes on size stability without a quiet-window wait.
 @MainActor
 final class PromiseDropController {
     enum Outcome {
@@ -14,14 +23,14 @@ final class PromiseDropController {
         case failure(String)
     }
 
-    private let receivers: [NSFilePromiseReceiver]
-    /// This drop's own directory (`<tempBase>/<UUID>/` with `r<i>/` per
-    /// receiver): no snapshot diffing, no cross-drop races, no filename
-    /// collisions between two promised "message.eml".
+    /// This drop's own directory (`<tempBase>/<UUID>/`): no snapshot
+    /// diffing, no cross-drop races, no filename collisions between two
+    /// promised "message.eml".
     let dropDirectory: URL
+    private let config: PromiseDropSession.Config
     private let onOutcome: (Outcome) -> Void
 
-    private var session: PromiseDropSession
+    private var session: PromiseDropSession?
     private var completed = false
     private var pollTask: Task<Void, Never>?
     /// Promise readers must run off the main queue (Apple requirement; some
@@ -30,18 +39,13 @@ final class PromiseDropController {
     private let startInstant = ContinuousClock.now
 
     init(
-        receivers: [NSFilePromiseReceiver],
         tempBase: URL,
         config: PromiseDropSession.Config = PromiseDropSession.Config(),
         onOutcome: @escaping (Outcome) -> Void
     ) {
-        self.receivers = receivers
         self.dropDirectory = tempBase.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        self.config = config
         self.onOutcome = onOutcome
-        // Receiver count is a HINT: Mail often reports one receiver with
-        // empty fileNames for a multi-message drag.
-        let expected = receivers.map { max($0.fileNames.count, 1) }.reduce(0, +)
-        self.session = PromiseDropSession(expectedCount: expected, startedAt: 0, config: config)
         readerQueue.maxConcurrentOperationCount = 2
     }
 
@@ -54,7 +58,9 @@ final class PromiseDropController {
         return Double(components.seconds) + Double(components.attoseconds) * 1e-18
     }
 
-    func start() {
+    // MARK: - Modern path (NSFilePromiseReceiver)
+
+    func start(receivers: [NSFilePromiseReceiver]) {
         let fm = FileManager.default
         do {
             for (index, _) in receivers.enumerated() {
@@ -67,13 +73,18 @@ final class PromiseDropController {
             return
         }
 
+        // fileNames is authoritative when populated; Mail leaves it empty,
+        // making the count a mere hint (→ quiet-window completion).
+        let exact = !receivers.isEmpty && receivers.allSatisfy { !$0.fileNames.isEmpty }
+        let expected = receivers.map { max($0.fileNames.count, 1) }.reduce(0, +)
+        beginSession(expectedCount: expected, expectedIsExact: exact)
+
         for (index, receiver) in receivers.enumerated() {
             let directory = receiverDirectory(index)
             let relativePrefix = "r\(index)/"
-            // Attempted first — when the reader actually fires (non-Mail
-            // promise sources) the drop completes without waiting for
-            // quiescence. With Mail it often never does (platform bug); the
-            // poll below covers that.
+            // Attempted first — when the reader actually fires the drop
+            // completes immediately. With Mail it often never does
+            // (platform bug); the poll covers that.
             receiver.receivePromisedFiles(atDestination: directory, options: [:], operationQueue: readerQueue) {
                 [weak self] url, error in
                 let relative = relativePrefix + url.lastPathComponent
@@ -88,7 +99,33 @@ final class PromiseDropController {
                 }
             }
         }
+    }
 
+    // MARK: - Legacy path (promised-file-url)
+
+    /// Create and return the destination directory for
+    /// `NSDraggingInfo.namesOfPromisedFilesDropped(atDestination:)` — which
+    /// must be called inside `performDragOperation`, before `startLegacy`.
+    func prepareLegacyDestination() throws -> URL {
+        let directory = receiverDirectory(0)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory
+    }
+
+    /// Begin watching for the promised files. `expectedCount` is the exact
+    /// promised-name count, so completion needs only size stability.
+    func startLegacy(expectedCount: Int) {
+        beginSession(expectedCount: expectedCount, expectedIsExact: expectedCount >= 1)
+    }
+
+    // MARK: - Shared machinery
+
+    private func beginSession(expectedCount: Int, expectedIsExact: Bool) {
+        session = PromiseDropSession(
+            expectedCount: expectedCount,
+            expectedIsExact: expectedIsExact,
+            startedAt: elapsed,
+            config: config)
         pollTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 250_000_000)
@@ -103,8 +140,8 @@ final class PromiseDropController {
     }
 
     private func feed(_ event: PromiseDropSession.Event) {
-        guard !completed else { return }
-        if case .finished(let outcome) = session.handle(event) {
+        guard !completed, session != nil else { return }
+        if case .finished(let outcome) = session!.handle(event) {
             switch outcome {
             case .files(let relativePaths, let warning):
                 let urls = relativePaths.map {
