@@ -56,18 +56,18 @@ enum Main {
 }
 
 struct MailAnalyzerApp: App {
+    @StateObject private var model = AppModel()
+
     var body: some Scene {
         WindowGroup("mail-analyzer-gui") {
-            ContentView()
+            ContentView(model: model)
         }
         .defaultSize(width: 720, height: 640)
-    }
-}
-
-// Placeholder until the real content view lands.
-struct ContentView: View {
-    var body: some View {
-        Text("mail-analyzer-gui")
-            .frame(minWidth: 480, minHeight: 360)
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("\(L("Settings"))…") { model.showSettings = true }
+                    .keyboardShortcut(",", modifiers: .command)
+            }
+        }
     }
 }
