@@ -36,7 +36,7 @@ final class EnvTemplatesTests: XCTestCase {
     }
 
     func testPlaceholderLookupAcrossTemplates() {
-        XCTAssertEqual(EnvTemplate.placeholder(for: "MAIL_ANALYZER_LOCATION"), "us-central1")
+        XCTAssertEqual(EnvTemplate.placeholder(for: "MAIL_ANALYZER_LOCATION"), "global")
         XCTAssertEqual(EnvTemplate.placeholder(for: "MAIL_ANALYZER_LOCAL_ENDPOINT"), "http://localhost:1234/v1")
         XCTAssertEqual(EnvTemplate.placeholder(for: "SOMETHING_ELSE"), "")
     }

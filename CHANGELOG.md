@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- The **mail-analyzer (Vertex AI) template** now suggests `global` /
+  `gemini-3.7-flash` (was `us-central1` / `gemini-2.5-flash`), matching the
+  mail-analyzer CLI's v0.3.0 defaults. Vertex AI serves the Gemini 3 family
+  only from the global endpoint — regional locations return 404 for them.
+  Placeholders remain hints, not values: existing saved settings are
+  untouched.
+
 ## v0.3.1 (2026-08-28)
 
 ### Fixed

@@ -38,8 +38,8 @@ final class AnalyzerInvocationTests: XCTestCase {
     func testEnvironmentOverridesParentWithNonEmptyValue() {
         let env = AnalyzerInvocation.environment(
             base: ["MAIL_ANALYZER_MODEL": "old"],
-            envVars: ["MAIL_ANALYZER_MODEL": "gemini-3-flash"])
-        XCTAssertEqual(env["MAIL_ANALYZER_MODEL"], "gemini-3-flash")
+            envVars: ["MAIL_ANALYZER_MODEL": "gemini-3.7-flash"])
+        XCTAssertEqual(env["MAIL_ANALYZER_MODEL"], "gemini-3.7-flash")
     }
 
     func testInterpretNonZeroExitWithStderr() {

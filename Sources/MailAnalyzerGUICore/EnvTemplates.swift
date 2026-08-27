@@ -15,9 +15,9 @@ public struct EnvRow: Equatable, Identifiable {
 }
 
 /// The two backend templates hard-coded in the legacy settings screen
-/// (git history ≤v0.2.2, src/lib/components/Settings.svelte) — names,
-/// keys, placeholders
-/// verbatim. Placeholders are hints, never default values.
+/// (git history ≤v0.2.2, src/lib/components/Settings.svelte) — names and
+/// keys verbatim. Placeholders are hints, never default values, and track
+/// the current mail-analyzer CLI defaults rather than legacy text.
 public struct EnvTemplate: Equatable {
     public let name: String
     public let vars: [(key: String, placeholder: String)]
@@ -26,8 +26,10 @@ public struct EnvTemplate: Equatable {
         name: "mail-analyzer (Vertex AI)",
         vars: [
             ("MAIL_ANALYZER_PROJECT", "GCP Project ID"),
-            ("MAIL_ANALYZER_LOCATION", "us-central1"),
-            ("MAIL_ANALYZER_MODEL", "gemini-2.5-flash"),
+            // Gemini 3 models are served only from the global endpoint;
+            // regional locations 404 for them.
+            ("MAIL_ANALYZER_LOCATION", "global"),
+            ("MAIL_ANALYZER_MODEL", "gemini-3.7-flash"),
             ("MAIL_ANALYZER_LANG", "(optional)"),
         ])
 
