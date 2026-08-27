@@ -59,6 +59,9 @@ struct MailAnalyzerApp: App {
     @StateObject private var model: AppModel
 
     init() {
+        // One-time import of the legacy Tauri store, before anything reads
+        // settings (never twice, never over user-created settings).
+        LegacyImport.runOnce()
         let model = AppModel()
         _model = StateObject(wrappedValue: model)
         // Crash hygiene: clear day-old promise-drop leftovers.
