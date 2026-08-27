@@ -225,12 +225,12 @@ struct ResultDetailView: View {
     }
 }
 
-/// Rounded tag pills, wrapping horizontally.
+/// Rounded tag pills, wrapping across lines (legacy flex-wrap parity).
 struct FlowTags: View {
     let tags: [String]
 
     var body: some View {
-        HStack(spacing: 6) {
+        FlowLayout(spacing: 6) {
             ForEach(Array(tags.enumerated()), id: \.offset) { _, tag in
                 Text(tag)
                     .font(.system(size: 11))
@@ -239,5 +239,6 @@ struct FlowTags: View {
                     .background(Color.secondary.opacity(0.15), in: Capsule())
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

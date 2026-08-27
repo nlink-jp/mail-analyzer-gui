@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Result tags wrap across lines again instead of overflowing the window —
+  the Swift rewrite dropped the legacy CSS `flex-wrap` behavior (found in
+  post-release code review).
+
 ## v0.3.0 (2026-08-28)
 
 ### Changed
