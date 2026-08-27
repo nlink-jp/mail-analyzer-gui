@@ -15,7 +15,8 @@ public struct EnvRow: Equatable, Identifiable {
 }
 
 /// The two backend templates hard-coded in the legacy settings screen
-/// (legacy/src/lib/components/Settings.svelte) — names, keys, placeholders
+/// (git history ≤v0.2.2, src/lib/components/Settings.svelte) — names,
+/// keys, placeholders
 /// verbatim. Placeholders are hints, never default values.
 public struct EnvTemplate: Equatable {
     public let name: String

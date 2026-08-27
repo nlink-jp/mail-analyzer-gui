@@ -10,7 +10,8 @@ public struct AnalyzerFailure: Error, Equatable, CustomStringConvertible {
 
 // The mail-analyzer subprocess contract: `<binary_path> <file>` with exactly
 // one positional argument and no flags. Error strings are part of the
-// contract (legacy/src-tauri/src/analyzer.rs) and stay English verbatim.
+// contract (git history ≤v0.2.2, src-tauri/src/analyzer.rs) and stay
+// English verbatim.
 public enum AnalyzerInvocation {
     /// Pre-flight validation of the configured binary path. Deliberately no
     /// PATH auto-detection and no fallback locations (anti-binary-injection

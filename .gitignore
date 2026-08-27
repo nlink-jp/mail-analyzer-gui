@@ -8,11 +8,3 @@ xcuserdata/
 .env
 .env.*
 .claude/
-
-# Generated trees inside the preserved Tauri implementation (legacy/ is
-# removed entirely before the v0.3.0 release).
-legacy/node_modules/
-legacy/build/
-legacy/dist/
-legacy/.svelte-kit/
-legacy/src-tauri/target/

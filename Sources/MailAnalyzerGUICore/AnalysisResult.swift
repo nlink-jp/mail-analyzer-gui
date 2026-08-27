@@ -1,7 +1,8 @@
 import Foundation
 
 // The mail-analyzer JSON output schema. Mirrors the Go analyzer's output as
-// accepted by the legacy Rust types (legacy/src-tauri/src/types.rs): fields
+// accepted by the legacy Rust types (git history ≤v0.2.2,
+// src-tauri/src/types.rs): fields
 // the analyzer may omit decode to defaults, and the six array fields the Go
 // backend emits as `null` for empty slices decode to []. Fields that were
 // required in the legacy decoder stay required here, so garbage JSON is
