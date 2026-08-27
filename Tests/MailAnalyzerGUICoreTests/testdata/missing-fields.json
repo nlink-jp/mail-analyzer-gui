@@ -1,0 +1,24 @@
+{
+  "source_file": "/tmp/partial.eml",
+  "hash": "1234",
+  "subject": "Partial output",
+  "indicators": {
+    "authentication": {
+      "spf": "pass"
+    },
+    "sender": {
+      "display_name_spoofing": true
+    },
+    "urls": [
+      { "url": "https://example.com" }
+    ],
+    "routing": {
+      "hop_count": 2
+    }
+  },
+  "judgment": {
+    "is_suspicious": true,
+    "category": "spam",
+    "confidence": 0.5
+  }
+}

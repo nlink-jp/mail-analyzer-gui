@@ -20,7 +20,8 @@ let package = Package(
         .testTarget(
             name: "MailAnalyzerGUICoreTests",
             dependencies: ["MailAnalyzerGUICore"],
-            path: "Tests/MailAnalyzerGUICoreTests"
+            path: "Tests/MailAnalyzerGUICoreTests",
+            resources: [.copy("testdata")]
         ),
         .testTarget(
             name: "MailAnalyzerGUITests",

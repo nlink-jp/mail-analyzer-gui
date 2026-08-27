@@ -1,0 +1,12 @@
+{
+  "source_file": "/tmp/minimal.eml",
+  "hash": "00ff",
+  "indicators": {
+    "authentication": {},
+    "sender": {},
+    "routing": {}
+  },
+  "judgment": {
+    "is_suspicious": false
+  }
+}

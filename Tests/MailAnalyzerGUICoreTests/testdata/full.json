@@ -1,0 +1,61 @@
+{
+  "source_file": "/tmp/sample.eml",
+  "hash": "d2f0a1b3c4e5f60718293a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d",
+  "message_id": "<20260501.1234@mail.example.com>",
+  "subject": "緊急: アカウント確認のお願い",
+  "from": "\"Example Bank\" <security@examp1e-bank.com>",
+  "to": ["victim@example.co.jp", "cc-target@example.co.jp"],
+  "date": "Fri, 01 May 2026 09:15:22 +0900",
+  "indicators": {
+    "authentication": {
+      "spf": "softfail",
+      "dkim": "fail",
+      "dmarc": "none"
+    },
+    "sender": {
+      "from_return_path_mismatch": true,
+      "display_name_spoofing": true,
+      "reply_to_divergence": false,
+      "details": "Display name imitates Example Bank but the domain uses a homoglyph."
+    },
+    "urls": [
+      {
+        "url": "https://examp1e-bank.com/login",
+        "suspicious": true,
+        "reason": "Homoglyph domain imitating example-bank.com"
+      },
+      {
+        "url": "https://example.co.jp/help",
+        "suspicious": false,
+        "reason": ""
+      }
+    ],
+    "attachments": [
+      {
+        "filename": "invoice.pdf.exe",
+        "mime_type": "application/octet-stream",
+        "size": 482304,
+        "hash": "0f1e2d3c4b5a69788766554433221100ffeeddccbbaa99887766554433221100",
+        "suspicious": true,
+        "reason": "Double extension hiding an executable"
+      }
+    ],
+    "routing": {
+      "hop_count": 6,
+      "x_mailer": "Bulk Mailer Pro 2.1",
+      "x_mailer_suspicious": true,
+      "suspicious_hops": ["hop 3: unresolvable HELO bulk-relay.invalid"]
+    }
+  },
+  "judgment": {
+    "is_suspicious": true,
+    "category": "phishing",
+    "confidence": 0.94,
+    "summary": "Credential-phishing mail impersonating Example Bank with a homoglyph domain.",
+    "reasons": [
+      "SPF softfail and DKIM fail for the sending domain",
+      "Login URL points at a homoglyph domain"
+    ],
+    "tags": ["credential-harvesting", "homoglyph", "banking"]
+  }
+}

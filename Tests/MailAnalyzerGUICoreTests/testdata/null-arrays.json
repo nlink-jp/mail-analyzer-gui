@@ -1,0 +1,38 @@
+{
+  "source_file": "/tmp/plain.eml",
+  "hash": "aa11bb22cc33dd44ee55ff6677889900aabbccddeeff00112233445566778899",
+  "message_id": "<plain@mail.example.com>",
+  "subject": "Weekly report",
+  "from": "colleague@example.co.jp",
+  "to": null,
+  "date": "Mon, 04 May 2026 10:00:00 +0900",
+  "indicators": {
+    "authentication": {
+      "spf": "pass",
+      "dkim": "pass",
+      "dmarc": "pass"
+    },
+    "sender": {
+      "from_return_path_mismatch": false,
+      "display_name_spoofing": false,
+      "reply_to_divergence": false,
+      "details": ""
+    },
+    "urls": null,
+    "attachments": null,
+    "routing": {
+      "hop_count": 3,
+      "x_mailer": "",
+      "x_mailer_suspicious": false,
+      "suspicious_hops": null
+    }
+  },
+  "judgment": {
+    "is_suspicious": false,
+    "category": "safe",
+    "confidence": 0.98,
+    "summary": "Ordinary internal report mail.",
+    "reasons": null,
+    "tags": null
+  }
+}
