@@ -1,166 +1,96 @@
-# Architecture: mail-analyzer-gui
+# アーキテクチャ: mail-analyzer-gui
 
-> Updated: 2026-04-11
+> 更新: 2026-08-28（v0.3.0 — Swift ネイティブ書き直し。置き換え前の
+> Tauri v2 構成は git 履歴（≤ v0.2.2）と ADR-0001 に残る）
 
-## Overview
+## 概要
 
-mail-analyzer-gui は Tauri v2 (Rust + Svelte) で構築するデスクトップアプリケーション。
-mail-analyzer CLI バイナリを子プロセスとして呼び出し、分析結果を GUI 上で表示する。
+mail-analyzer-gui は Swift 製の macOS ネイティブアプリケーション
+（SwiftUI + ドラッグ&ドロップ用の AppKit ビュー 1 枚）。mail-analyzer CLI
+バイナリをサブプロセスとして起動し、分析結果を GUI に表示する。
+SwiftPM の 2 ターゲット構成:
 
-## Component Diagram
+- **MailAnalyzerGUICore** — 純粋で UI 非依存のロジック（AppKit import 禁止）。
+  「判断」はすべてここにあり、依存注入で単体テストされる。
+- **MailAnalyzerGUI** — SwiftUI 実行ターゲット: ビュー、アプリモデル、
+  非純粋な半分（Process / FileManager / ペーストボード / promise receiver）。
 
-```
-┌─────────────────────────────────────────────────┐
-│  mail-analyzer-gui (.app)                       │
-│                                                 │
-│  ┌──────────────────────┐  ┌─────────────────┐  │
-│  │  Frontend (Svelte)   │  │  Backend (Rust)  │  │
-│  │                      │  │                  │  │
-│  │  DropZone component  │  │  analyze_file()  │──── subprocess ──▶ mail-analyzer
-│  │  ResultList component│◀─┤  get_settings()  │  │
-│  │  ResultDetail comp.  │  │  save_settings() │  │
-│  │  Settings view       │  │  export_json()   │  │
-│  │                      │  │                  │  │
-│  └──────┬───────────────┘  └──────────────────┘  │
-│         │ invoke()              │                 │
-│         └───────────────────────┘                 │
-│                                                   │
-│  Plugins:                                        │
-│  - tauri-plugin-shell (子プロセス実行)             │
-│  - tauri-plugin-store (設定永続化)                 │
-│  - Built-in DragDrop event (Finder D&D)          │
-│                                                   │
-│  Native:                                         │
-│  - NSView overlay (Apple Mail file promises)     │
-│  - ObjC helper + FSEventStream                   │
-└─────────────────────────────────────────────────┘
-```
-
-## Data Flow
+## コンポーネント図
 
 ```
-1. User drops .eml/.msg file(s) onto DropZone
-2. Tauri DragDropEvent fires with file paths
-3. Frontend calls invoke('analyze_file', { path })
-4. Rust backend:
-   a. Reads settings (binary path, env vars) from store
-   b. Spawns mail-analyzer subprocess with env vars
-   c. Captures stdout (JSON)
-   d. Parses and validates JSON
-   e. Returns Result to frontend
-5. Frontend renders result in ResultList/ResultDetail
+┌────────────────────────────────────────────────────────────────┐
+│  MailAnalyzerGUI.app（単一プロセス・単一言語）                    │
+│                                                                │
+│  SwiftUI                    AppKit                             │
+│  ┌───────────────────┐      ┌──────────────────────────┐       │
+│  │ ContentView        │      │ DropView（ルート背景）     │      │
+│  │  ├ DropZoneVisual  │◀────▶│  file URL + file promise  │      │
+│  │  ├ ResultListView  │      └────────────┬─────────────┘       │
+│  │  │  └ ResultDetail │                   │ promise             │
+│  │  └ SettingsView    │      ┌────────────▼─────────────┐       │
+│  └─────────┬─────────┘      │ PromiseDropController     │       │
+│            │                │  ドロップ毎 UUID 一時 dir、 │      │
+│  ┌─────────▼─────────┐      │  250ms poll → reducer     │       │
+│  │ AppModel           │◀────┴──────────────────────────┘       │
+│  │  逐次 FIFO 解析     │                                        │
+│  │  キュー             │───▶ ProcessRunner ── subprocess ──▶ mail-analyzer(-local)
+│  └───────────────────┘                                         │
+│                                                                │
+│  MailAnalyzerGUICore（純粋）:                                    │
+│   AnalysisResult（Codable スキーマ）· AnalyzerInvocation          │
+│   PromiseDropSession（状態機械）· DropFilter                      │
+│   AnalyzerSettings（UserDefaults）· EnvTemplates · LegacyImport   │
+└────────────────────────────────────────────────────────────────┘
 ```
 
-## Directory Structure
+## データフロー
 
-```
-mail-analyzer-gui/
-├── docs/
-│   ├── en/                     # 英語ドキュメント
-│   │   ├── README.md
-│   │   └── design/
-│   └── ja/                     # 日本語ドキュメント
-│       ├── README.md
-│       └── design/
-├── src/                        # Svelte frontend
-│   ├── lib/
-│   │   ├── components/
-│   │   │   ├── DropZone.svelte
-│   │   │   ├── ResultList.svelte
-│   │   │   ├── ResultDetail.svelte
-│   │   │   └── Settings.svelte
-│   │   ├── stores/
-│   │   │   └── analysis.ts     # Svelte store for results
-│   │   └── types.ts            # TypeScript types for mail-analyzer JSON
-│   ├── App.svelte
-│   └── main.ts
-├── src-tauri/
-│   ├── src/
-│   │   ├── lib.rs              # Tauri app setup + command registration
-│   │   ├── main.rs             # Entry point
-│   │   ├── commands.rs         # tauri::command definitions
-│   │   ├── analyzer.rs         # mail-analyzer subprocess execution
-│   │   ├── settings.rs         # Settings read/write via plugin-store
-│   │   └── types.rs            # Rust types matching mail-analyzer JSON
-│   ├── capabilities/
-│   │   └── default.json        # shell:allow-execute, store:default
-│   ├── Cargo.toml
-│   └── tauri.conf.json
-├── static/
-├── package.json
-├── svelte.config.js
-├── vite.config.ts
-├── tsconfig.json
-├── Makefile
-├── AGENTS.md
-├── CHANGELOG.md
-└── README.md
-```
+### Finder ドロップ（file URL）
 
-## Tauri Commands (Rust → Frontend API)
+1. `DropView.performDragOperation` がペーストボードから file URL を読む。
+2. `AppModel.handleDropped` が `DropFilter` で選別（.eml/.msg、大小文字
+   無視。除外分は通知表示）し、エントリを先頭に追加（新しい順）して
+   キューに積む。
+3. 単一ワーカーが FIFO を厳密に逐次処理: バイナリパス検証 →
+   `ProcessRunner.run`（300 秒タイムアウト）→
+   `AnalyzerInvocation.interpret` → エントリ状態 `done`/`error`。
 
-| Command | Input | Output | Description |
-|---------|-------|--------|-------------|
-| `analyze_file` | `path: String` | `AnalysisResult` | mail-analyzerを実行し結果を返す |
-| `get_settings` | — | `Settings` | 現在の設定を取得 |
-| `save_settings` | `settings: Settings` | `()` | 設定を永続化 |
-| `export_json` | `results: Vec<AnalysisResult>` | `String` (path) | 結果をJSONファイルに保存 |
+### Apple Mail ドロップ（file promise）
 
-## Key Types
+1. `DropView` が promise 型を検出（promise 優先）し、
+   `NSFilePromiseReceiver` 群を新しい `PromiseDropController` に渡す。
+2. controller は `$TMPDIR/mail-analyzer-gui-drop/<UUID>/r<i>/` を作成し、
+   `receivePromisedFiles` を発行（reader は非 main キュー。Mail では発火
+   しないことが多い — プラットフォームバグ）し、ディレクトリを 250ms
+   間隔でポーリングして純粋な `PromiseDropSession` reducer に流す。
+3. reducer の完了条件: reader が期待数を届けた／全ファイルのサイズが静止し
+   2 秒の quiet window が経過（レシーバ数はヒント扱い — これが複数
+   メッセージドラッグを成立させる）／15 秒の deadline で**必ず**結果を出す
+   （不足分は警告付き部分配達、0 件は失敗通知。沈黙はない）。
+4. 届いたファイルは `promiseTemp: true` で同じ `handleDropped` 経路へ。
+   解析後に一時ファイルを削除（temp base 配下ガード付き）し、空になった
+   ドロップディレクトリを掃除。1 日超の残骸は起動時に一掃する。
 
-### Settings
+### サブプロセス契約
 
-```typescript
-interface Settings {
-  binaryPath: string;       // mail-analyzer binary absolute path
-  envVars: {
-    project: string;        // MAIL_ANALYZER_PROJECT
-    location: string;       // MAIL_ANALYZER_LOCATION (default: "us-central1")
-    model: string;          // MAIL_ANALYZER_MODEL (default: "gemini-2.5-flash")
-    lang: string;           // MAIL_ANALYZER_LANG (optional)
-  };
-}
-```
+`<binary_path> <file>` — 位置引数 1 つ、フラグ無し。親環境を継承し、設定
+された環境変数は非空の場合のみ適用。stdout/stderr は exit 待ちの前に全量
+ドレイン（パイプデッドロック無し）。検証とエラーメッセージの書式は legacy
+文言そのままの契約テキスト（英語）。
 
-### AnalysisResult (mail-analyzer JSON output)
+### 設定
 
-```typescript
-interface AnalysisResult {
-  source_file: string;
-  hash: string;
-  message_id: string;
-  subject: string;
-  from: string;
-  to: string[];
-  date: string;
-  indicators: {
-    authentication: AuthResult;
-    sender: SenderResult;
-    urls: URLResult[];
-    attachments: AttachResult[];
-    routing: RoutingResult;
-  };
-  judgment: {
-    is_suspicious: boolean;
-    category: "phishing" | "spam" | "malware-delivery" | "bec" | "scam" | "safe";
-    confidence: number;
-    summary: string;
-    reasons: string[];
-    tags: string[];
-  };
-}
-```
+`AnalyzerSettings` ⇄ `UserDefaults`（`analyzer.binaryPath`,
+`analyzer.envVars`）。`LegacyImport` が v0.2.x の Tauri store を一度だけ
+移行（フラグ `migration.importedTauriSettings`）し、ユーザーが作成済みの
+設定は決して上書きしない。PATH 自動検出は行わない — バイナリインジェク
+ション防止（RFP §5）。
 
-## Security Considerations
+## テスト戦略
 
-- **Binary path**: PATHからの自動検出は行わない。設定画面で絶対パスを明示指定し、バイナリインジェクションを防止
-- **Subprocess execution**: tauri-plugin-shell の capabilities で許可するコマンドを最小限に制限
-- **Environment variables**: GCPプロジェクトID等の機密情報はローカルストアに保存。ファイルはアプリデータディレクトリ内
-- **Input validation**: ドロップされたファイルの拡張子を検証（.eml, .msg のみ受け付け）
-- **Capabilities**: Tauri v2 の capabilities で権限を最小限に設定
-
-## Build & Distribution
-
-- `npm run tauri build -- --bundles app` で `.app` バンドルのみ生成 — `.dmg` は作らない。リリース成果物は ditto で zip 化した `.app`（CONVENTIONS.md §Release Archive Standard）
-- v0.2.1 以降は `make package` で Developer ID 署名 + 公証 + ステープル済み。v0.2.0 以前はアドホック署名のみで、初回起動時に `xattr -d com.apple.quarantine` で Gatekeeper 回避が必要
-- macOS 10.15+ (Catalina) 対応
+判断ロジックは純粋かつクロック注入: promise-drop reducer、呼び出し契約、
+テンプレート、フィルタ、設定、legacy import はタイマーも実ドラッグも
+使わずにテストされる。`ProcessRunner` は実 `/bin/sh` フィクスチャ
+（タイムアウト、パイプ量）で検証。GUI 側はモデルの逐次性・クリーンアップ
+保証、DropView ハンドラ（fake `NSDraggingInfo`）、実一時ディレクトリに
+対する promise controller、en/ja ローカライズのパリティを検証する。
