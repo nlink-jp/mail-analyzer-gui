@@ -56,7 +56,16 @@ enum Main {
 }
 
 struct MailAnalyzerApp: App {
-    @StateObject private var model = AppModel()
+    @StateObject private var model: AppModel
+
+    init() {
+        let model = AppModel()
+        _model = StateObject(wrappedValue: model)
+        // Crash hygiene: clear day-old promise-drop leftovers.
+        Task.detached(priority: .background) {
+            model.sweepStaleDropDirectories()
+        }
+    }
 
     var body: some Scene {
         WindowGroup("mail-analyzer-gui") {

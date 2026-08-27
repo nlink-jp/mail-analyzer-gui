@@ -8,14 +8,25 @@ import SwiftUI
 final class DropView: NSView {
     var onHighlight: (Bool) -> Void = { _ in }
     var onFileURLs: ([URL]) -> Void = { _ in }
+    var onFilePromises: ([NSFilePromiseReceiver]) -> Void = { _ in }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        registerForDraggedTypes([.fileURL])
+        // Both drop paths in one native view — the legacy split (Tauri
+        // DragDrop for Finder + an ObjC overlay for promises) is gone.
+        let promiseTypes = NSFilePromiseReceiver.readableDraggedTypes.map {
+            NSPasteboard.PasteboardType($0)
+        }
+        registerForDraggedTypes([.fileURL] + promiseTypes)
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("not used") }
+
+    private func hasFilePromises(_ sender: NSDraggingInfo) -> Bool {
+        sender.draggingPasteboard.canReadObject(
+            forClasses: [NSFilePromiseReceiver.self], options: [:])
+    }
 
     private func fileURLs(from sender: NSDraggingInfo) -> [URL] {
         (sender.draggingPasteboard.readObjects(
@@ -24,7 +35,7 @@ final class DropView: NSView {
     }
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-        guard !fileURLs(from: sender).isEmpty else { return [] }
+        guard hasFilePromises(sender) || !fileURLs(from: sender).isEmpty else { return [] }
         onHighlight(true)
         return .copy
     }
@@ -39,6 +50,17 @@ final class DropView: NSView {
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         onHighlight(false)
+        // Promise-first, matching the legacy overlay's precedence: a source
+        // offering promises (Mail) is handled via the resolver even if it
+        // also offers URLs.
+        if hasFilePromises(sender) {
+            let receivers = (sender.draggingPasteboard.readObjects(
+                forClasses: [NSFilePromiseReceiver.self],
+                options: [:]) as? [NSFilePromiseReceiver]) ?? []
+            guard !receivers.isEmpty else { return false }
+            onFilePromises(receivers)
+            return true
+        }
         let urls = fileURLs(from: sender)
         guard !urls.isEmpty else { return false }
         onFileURLs(urls)
@@ -67,6 +89,9 @@ struct DropHostView: NSViewRepresentable {
         view.onHighlight = { model.isDropTargeted = $0 }
         view.onFileURLs = { urls in
             model.handleDropped(paths: urls.map(\.path), promiseTemp: false)
+        }
+        view.onFilePromises = { receivers in
+            model.handlePromiseDrop(receivers: receivers)
         }
     }
 }

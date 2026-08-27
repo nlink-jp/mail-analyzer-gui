@@ -49,6 +49,9 @@ final class AppModel: ObservableObject {
     private var pendingQueue: [QueueItem] = []
     private var workerRunning = false
     private var noticeGeneration = 0
+    /// Live promise-drop controllers, retained until they deliver their one
+    /// outcome (deterministic teardown — the legacy WatchContext leaked).
+    private var promiseControllers: [ObjectIdentifier: PromiseDropController] = [:]
 
     static let defaultDropTempBase = URL(
         fileURLWithPath: NSTemporaryDirectory(), isDirectory: true
@@ -102,6 +105,59 @@ final class AppModel: ObservableObject {
         showNotice(L("Drop failed: %@", message))
     }
 
+    /// Entry point for file-promise drags (Apple Mail). Every drop gets its
+    /// own controller and temp subdirectory; the outcome — success, partial,
+    /// or failure — always reaches the UI (the legacy drop-error event was
+    /// emitted into the void).
+    func handlePromiseDrop(receivers: [NSFilePromiseReceiver]) {
+        guard !receivers.isEmpty else { return }
+        var controllerID: ObjectIdentifier?
+        let controller = PromiseDropController(
+            receivers: receivers,
+            tempBase: dropTempBase
+        ) { [weak self] outcome in
+            guard let self else { return }
+            if let id = controllerID {
+                self.promiseControllers[id] = nil
+            }
+            switch outcome {
+            case .files(let urls, let warning):
+                if let warning {
+                    self.showNotice(warning)
+                }
+                self.handleDropped(paths: urls.map(\.path), promiseTemp: true)
+            case .failure(let message):
+                self.reportDropFailure(message)
+            }
+        }
+        let id = ObjectIdentifier(controller)
+        controllerID = id
+        promiseControllers[id] = controller
+        controller.start()
+    }
+
+    /// Crash hygiene: drop directories older than a day are leftovers from a
+    /// crashed session (a clean run deletes its files after analysis).
+    /// Strictly scoped to our own temp namespace.
+    nonisolated func sweepStaleDropDirectories(olderThan age: TimeInterval = 86_400) {
+        let fm = FileManager.default
+        guard let entries = try? fm.contentsOfDirectory(
+            at: dropTempBase,
+            includingPropertiesForKeys: [.isDirectoryKey, .contentModificationDateKey])
+        else { return }
+        let cutoff = Date().addingTimeInterval(-age)
+        for url in entries {
+            guard let values = try? url.resourceValues(
+                    forKeys: [.isDirectoryKey, .contentModificationDateKey]),
+                  values.isDirectory == true,
+                  let modified = values.contentModificationDate,
+                  modified < cutoff,
+                  url.standardizedFileURL.path.hasPrefix(dropTempBase.standardizedFileURL.path)
+            else { continue }
+            try? fm.removeItem(at: url)
+        }
+    }
+
     // MARK: - Sequential analysis worker
 
     private func ensureWorker() {
@@ -141,12 +197,23 @@ final class AppModel: ObservableObject {
     }
 
     /// Fire-and-forget deletion of a promise temp file, guarded to the drop
-    /// temp base so a Finder-dropped original can never be removed.
+    /// temp base so a Finder-dropped original can never be removed. Empty
+    /// parent directories (r<i>/ and the drop's UUID dir) are pruned once
+    /// their last file is gone.
     private func removeTempFileIfNeeded(_ item: QueueItem) {
         guard item.isPromiseTemp else { return }
         let base = dropTempBase.standardizedFileURL.path
         guard item.url.standardizedFileURL.path.hasPrefix(base) else { return }
         deleteFile(item.url)
+
+        let fm = FileManager.default
+        var dir = item.url.deletingLastPathComponent().standardizedFileURL
+        while dir.path.hasPrefix(base), dir.path != base,
+              let contents = try? fm.contentsOfDirectory(atPath: dir.path),
+              contents.isEmpty {
+            try? fm.removeItem(at: dir)
+            dir = dir.deletingLastPathComponent().standardizedFileURL
+        }
     }
 
     // MARK: - Toolbar actions
