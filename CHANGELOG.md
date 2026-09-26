@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- The release zip no longer carries AppleDouble (`._*`) entries: the app is
+  zipped with `ditto --norsrc --noextattr`, so its signature survives unpacking
+  with `unzip`. `make verify-release` refuses a zip that carries them.
+
 ## v0.3.2 (2026-08-28)
 
 ### Changed
